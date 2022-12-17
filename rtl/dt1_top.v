@@ -1,12 +1,18 @@
 
 module dt1_top(
-//riscv-formal output signals
 	input  wire        clk, 
 	input  wire        rst,
-	output reg  [31:0] PCF, 
+	
+	//imem
+	input wire [31:0] InstrF,
+	output reg  [31:0] PCF,
+	//dmem
+	input wire [31:0] ReadDataMTick,
 	output reg [31:0]  ALUResultM, 
 	output reg [31:0]  WriteDataM,
 	output reg [1:0]   MemWriteM
+	//register file
+	output reg       [31:0] rf[31:0];
 );
 	/*****************************************/
 	/* PARAMETER, REG, AND WIRE DECLARATIONS */
@@ -82,17 +88,13 @@ module dt1_top(
 	localparam HALF_SIGNED   = 3'b011;
 	localparam HALF_UNSIGNED = 3'b100;
 	localparam NOT_MEM_OP   = 2'b00;
-	localparam NO_WRITE     = 2'b00;
 	localparam BYTE_MEM_OP  = 2'b01;
-	localparam WORD_WRITE   = 2'b01;
 	localparam HALF_MEM_OP  = 2'b10;
-	localparam HALF_WRITE   = 2'b10;
 	localparam WORD_MEM_OP  = 2'b11;
-	localparam BYTE_WRITE   = 2'b11;
+
 	
 	//fetch connections
 	reg [31:0]  InstrD;
-	wire [31:0] InstrF;
 	//decode connections
 	reg [31:0] ImmExtD,ImmExtE;
 	wire [4:0] RdD;
@@ -111,7 +113,6 @@ module dt1_top(
 	reg [31:0] ReadDataM;
 	reg [31:0] ALUResultW;
 	reg [31:0] ReadDataW;
-	reg [31:0] ReadDataMTick;
 	//writeback
 	wire [31:0] ResultW;
 	/*******************/
@@ -154,39 +155,8 @@ module dt1_top(
 	wire  [31:0]   PCPlus4F; 
 	reg   [31:0]   PCPlus4D, PCPlus4E, PCPlus4M, PCPlus4W;
 	wire  [31:0]   PCTargetSrcAE, PCTargetE;
-	/**********************************/
-	/* instruction memory interface   */
-	/**********************************/
-	reg [31:0] imem [63:0];
 	
-	initial $readmemh("C:/Users/david/Desktop/RV32I CPU - Verilog/riscvtest.txt",imem);
-	
-	assign InstrF = imem[PCF[31:2]];	
-    /*********************************/
-	/* data memory interface   *******/
-	/*********************************/
-	reg [31:0] dmem[63:0];
-	always@(*) ReadDataMTick = dmem[ALUResultM[31:2]]; //read
-	always@(posedge clk) begin//write
-		case(MemWriteM)
-			NO_WRITE: begin end
-			WORD_WRITE: dmem[ALUResultM[31:2]]<= WriteDataM[31:0];
-			HALF_WRITE: case(ALUResultM[1])
-						1'b0:dmem[ALUResultM[31:2]][15:0]<= WriteDataM[15:0];
-						1'b1:dmem[ALUResultM[31:2]][31:16]<= WriteDataM[15:0];
-						default: dmem[ALUResultM[31:2]]<= 32'bxxxx_xxxx_xxxx_xxxx_xxxx_xxxx_xxxx_xxxx;
-				   endcase
-			BYTE_WRITE: case(ALUResultM[1:0])
-						2'b00:dmem[ALUResultM[31:2]][7:0] <= WriteDataM[7:0];
-						2'b01:dmem[ALUResultM[31:2]][15:8] <= WriteDataM[7:0];
-						2'b10:dmem[ALUResultM[31:2]][23:16] <= WriteDataM[7:0];
-						2'b11:dmem[ALUResultM[31:2]][31:24] <= WriteDataM[7:0];
-						default: dmem[ALUResultM[31:2]]<= 32'bxxxx_xxxx_xxxx_xxxx_xxxx_xxxx_xxxx_xxxx;
-				   endcase 
-				   
-			default: dmem[ALUResultM[31:2]]    <= 32'bxxxx_xxxx_xxxx_xxxx_xxxx_xxxx_xxxx_xxxx;
-		endcase
-	 end
+   
 	/*****************************/
 	/* instruction fetch stage   */
 	/*****************************/
@@ -300,7 +270,7 @@ module dt1_top(
 	end
 	/*******************************************/
 	integer 			    i;
-	reg       [31:0] rf[31:0];  
+	  
 	wire [4:0]				a1;
 	wire [4:0] 				a2;
 	

@@ -1,0 +1,29 @@
+module dt1_tb;
+	wire clk,rst;
+	dt1_top(
+		clk(clk),
+		rst(),
+		InstrF(),
+		PCF(),
+		ReadDataMTick(),
+		ALUResultM(),
+		WriteDataM(),
+		MemWriteM(),
+		rf()
+	);
+	dmem(
+		clk();
+		ALUResultM(),
+		WriteDataM(),
+		MemWriteM(),
+		dmem()
+	);
+	imem(
+		PCF(),
+		InstrF()
+	);
+	initial 
+		begin
+			display(rf[10]);
+		end
+endmodule
